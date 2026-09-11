@@ -72,6 +72,7 @@ pub async fn chat_stream_with_retry(
                 }
             }
         }
+        tracing::info!("{output}");
         Ok(output)
     };
     op.retry(ExponentialBuilder::default().with_max_times(3))
