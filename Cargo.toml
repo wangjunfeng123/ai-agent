@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [[example]]
+# cargo run --example stream_chat
 name = "stream_chat"
 path ="examples/stream_chat.rs"
 
@@ -11,6 +12,7 @@ path ="examples/stream_chat.rs"
 anyhow = "1.0.102"
 async-openai = {version = "0.41.0", features =["chat-completion"]}
 async-stream = "0.3.6"
+backon = "1.6.0"
 dotenvy = "0.15.7"
 futures = "0.3.34"
 schemars = "1.2.2"
