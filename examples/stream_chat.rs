@@ -1,6 +1,9 @@
-use ai_agent::{content::KIMI_K27_CODE_MODEL, llm::stream::chat_stream};
-use futures::StreamExt;
-use tracing::Level;
+use ai_agent::{
+    content::KIMI_K27_CODE_MODEL,
+    llm::{semaphore::get_semaphore, stream::chat_stream_with_retry},
+};
+use tokio::task::JoinSet;
+use tracing::{Instrument, Level};
 use tracing_subscriber::FmtSubscriber;
 
 #[tokio::main]
@@ -12,26 +15,38 @@ async fn main() -> anyhow::Result<()> {
         .finish();
     tracing::subscriber::set_global_default(subscriber)?;
 
-    let ret = chat_stream(
-        KIMI_K27_CODE_MODEL,
-        Some("你是一个全能助手"),
-        "道德经第四章什么内容？",
-    );
-    futures::pin_mut!(ret);
-    let mut output = String::new();
+    let prompts = vec![
+        "http和https的区别",
+        "rust 中Arc和rc的区别",
+        "什么是异步编程，和多线程有什么区别",
+        "解释下TCP的三次握手",
+        "什么是ai agent,做下大概的描述",
+        "讲讲rust 包tracing怎么使用的",
+    ];
 
-    while let Some(result) = ret.next().await {
+    let mut set = JoinSet::new();
+    for prompt in prompts {
+        let span = tracing::info_span!("Chat", prompt = prompt);
+        set.spawn(
+            async move {
+                tracing::info!("{prompt}");
+                let permit = get_semaphore().acquire().await?;
+                let output =
+                    chat_stream_with_retry(KIMI_K27_CODE_MODEL, Some("你是一个全能助手"), prompt)
+                        .await?;
+                drop(permit);
+                Ok::<_, anyhow::Error>((prompt, output))
+            }
+            .instrument(span),
+        );
+    }
+
+    while let Some(result) = set.join_next().await {
         match result {
-            Ok(txt) => {
-                output.push_str(&txt);
-            }
-            Err(err) => {
-                tracing::error!("error while stream :{}", err);
-                return Err(err);
-            }
+            Ok(Ok((prompt, result))) => tracing::info!("{prompt}--{result}"),
+            Ok(Err(err)) => tracing::error!("task panic :{err}"),
+            Err(err) => tracing::error!("task panic ::{err}"),
         }
     }
-    println!("==============");
-    println!("{output}");
     anyhow::Ok(())
 }
