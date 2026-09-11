@@ -1,4 +1,4 @@
-use ai_agent::{content::KIMI_K27_CODE, llm::stream::chat_stream};
+use ai_agent::{content::KIMI_K27_CODE_MODEL, llm::stream::chat_stream};
 use futures::StreamExt;
 use tracing::Level;
 use tracing_subscriber::FmtSubscriber;
@@ -13,7 +13,7 @@ async fn main() -> anyhow::Result<()> {
     tracing::subscriber::set_global_default(subscriber)?;
 
     let ret = chat_stream(
-        KIMI_K27_CODE,
+        KIMI_K27_CODE_MODEL,
         Some("你是一个全能助手"),
         "道德经第四章什么内容？",
     );

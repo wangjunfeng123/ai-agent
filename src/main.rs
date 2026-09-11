@@ -1,4 +1,4 @@
-use ai_agent::{content::KIMI_K27_CODE, llm::complete_struct::chat_complete_struct};
+use ai_agent::{content::KIMI_K27_CODE_MODEL, llm::complete_struct::chat_complete_struct};
 use tracing::Level;
 use tracing_subscriber::FmtSubscriber;
 
@@ -12,7 +12,7 @@ async fn main() -> anyhow::Result<()> {
     tracing::subscriber::set_global_default(subscriber)?;
 
     let ret = chat_complete_struct(
-        KIMI_K27_CODE,
+        KIMI_K27_CODE_MODEL,
         Some("你是一个全能助手"),
         "我要去美加墨世界杯，如何安排？",
     )
