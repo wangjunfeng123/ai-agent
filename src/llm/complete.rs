@@ -31,8 +31,14 @@ pub async fn chat_complete(
         .messages(messages)
         .max_tokens(204890u32)
         .build()?;
-    let resp = client.chat().create(request).await?;
-    tracing::info!("Resp={:#?}", resp);
 
-    anyhow::Ok(String::new())
+    let resp = client.chat().create(request).await?;
+    let content = resp
+        .choices
+        .into_iter()
+        .next()
+        .and_then(|c| c.message.content)
+        .ok_or_else(|| anyhow::anyhow!("no content to resp"))?;
+
+    anyhow::Ok(content)
 }

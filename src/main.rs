@@ -11,11 +11,12 @@ async fn main() -> anyhow::Result<()> {
         .finish();
     tracing::subscriber::set_global_default(subscriber)?;
 
-    let _ret = chat_complete(
+    let ret = chat_complete(
         KIMI_K27_CODE,
         Some("你是一个全能助手"),
-        "国足世界杯的最好成绩是？",
+        "法国的首都是哪里？",
     )
-    .await;
+    .await?;
+    tracing::info!("{:?}", ret);
     anyhow::Ok(())
 }
