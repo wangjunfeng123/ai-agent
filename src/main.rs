@@ -15,7 +15,8 @@ async fn main() -> anyhow::Result<()> {
         KIMI_K27_CODE,
         Some("你是一个全能助手"),
         "我要去美加墨世界杯，如何安排？",
-    );
+    )
+    .await;
     tracing::info!("{:?}", ret);
     anyhow::Ok(())
 }
