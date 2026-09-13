@@ -3,10 +3,16 @@ name = "ai-agent"
 version = "0.1.0"
 edition = "2024"
 
-[[example]]
 # cargo run --example stream_chat
+[[example]]
 name = "stream_chat"
 path ="examples/stream_chat.rs"
+[[example]]
+name = "stream_structured"
+path ="examples/stream_structured.rs"
+[[example]]
+name = "tool_call_complete"
+path ="examples/tool_call_complete.rs"
 
 [dependencies]
 anyhow = "1.0.102"

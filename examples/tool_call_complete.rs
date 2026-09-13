@@ -1,8 +1,4 @@
-use ai_agent::{
-    content::KIMI_K27_CODE_MODEL,
-    tools::{self, calculator::definition::calculator_tool_definition, get_tools},
-};
-use tokio::task::JoinSet;
+use ai_agent::{content::KIMI_K27_CODE_MODEL, llm::complete::chat_complete, tools::get_tools};
 use tracing::Level;
 use tracing_subscriber::FmtSubscriber;
 
@@ -19,7 +15,7 @@ async fn main() -> anyhow::Result<()> {
     let ret = chat_complete(
         KIMI_K27_CODE_MODEL,
         Some("你是一个全能助手"),
-        "我要去美加墨世界杯，如何安排？",
+        "50乘以30等于多少？",
         tools,
     )
     .await;

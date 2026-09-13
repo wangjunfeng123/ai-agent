@@ -1,4 +1,5 @@
 use ai_agent::content::KIMI_K27_CODE_MODEL;
+use ai_agent::llm::complete_struct::chat_complete_struct;
 use tracing::Level;
 use tracing_subscriber::FmtSubscriber;
 
