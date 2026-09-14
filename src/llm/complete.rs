@@ -4,7 +4,10 @@ use async_openai::types::chat::{
     ChatCompletionTools, CreateChatCompletionRequestArgs,
 };
 
-use crate::tools::calculator::execute::{CalculatorArgs, calculator};
+use crate::tools::{
+    calculator::execute::{CalculatorArgs, calculator},
+    web_search::execute::{WebSearchArgs, web_search},
+};
 
 pub async fn chat_complete(
     model: &str,
@@ -71,6 +74,23 @@ pub async fn chat_complete(
                             Err(err) => err,
                         };
                         tracing::info!("tool call result={tool_result}");
+                        messages.push(
+                            ChatCompletionRequestToolMessageArgs::default()
+                                .tool_call_id(function_call.id)
+                                .content(tool_result)
+                                .build()?
+                                .into(),
+                        );
+                    } else if function_name == "web_search" {
+                        let args: WebSearchArgs = serde_json::from_str(&function_args)?;
+                        let result = web_search(args).await;
+                        let tool_result = match result {
+                            Ok(search_ret) => serde_json::to_string(&search_ret)?,
+                            Err(error) => error.to_string(),
+                        };
+
+                        tracing::info!("web search result = {tool_result}");
+
                         messages.push(
                             ChatCompletionRequestToolMessageArgs::default()
                                 .tool_call_id(function_call.id)
