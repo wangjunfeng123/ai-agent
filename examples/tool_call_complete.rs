@@ -1,4 +1,4 @@
-use ai_agent::{content::KIMI_K27_CODE_MODEL, llm::complete::chat_complete, tools::get_tools};
+use ai_agent::{content::KIMI_K27_CODE_MODEL, llm::complete::chat_complete, tools::build_toolbox};
 use tracing::Level;
 use tracing_subscriber::FmtSubscriber;
 
@@ -11,7 +11,7 @@ async fn main() -> anyhow::Result<()> {
         .finish();
     tracing::subscriber::set_global_default(subscriber)?;
 
-    let tools = get_tools();
+    let tools = build_toolbox();
     let ret = chat_complete(
         KIMI_K27_CODE_MODEL,
         Some(
@@ -21,7 +21,7 @@ async fn main() -> anyhow::Result<()> {
         你的训练数据有截止日期，可能已经过时，请始终优先信任工具返回的内容。"#,
         ),
         "2026年女篮世界杯决赛比分？",
-        tools,
+        &tools,
     )
     .await;
     tracing::info!("{:?}", ret);
