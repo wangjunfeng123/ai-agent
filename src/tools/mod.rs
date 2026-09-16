@@ -1,24 +1,33 @@
 pub mod calculator;
+pub mod mcp;
 pub mod tool;
 pub mod web_search;
 
-use std::collections::HashMap;
+use std::{collections::HashMap, sync::Arc};
+
+use anyhow::Ok;
 
 use crate::tools::{
-    calculator::r#impl::CalculatorTool, tool::Tool, web_search::r#impl::WebSearchTool,
+    calculator::r#impl::CalculatorTool,
+    mcp::{client::McpClient, tool::McpTool},
+    tool::Tool,
+    web_search::r#impl::WebSearchTool,
 };
-
-// pub fn get_tools() -> Vec<ChatCompletionTools> {
-//     vec![calculator_tool_definition(), web_search_tool_definition()]
-// }
 
 pub type ToolBox = HashMap<String, Box<dyn Tool>>;
 
-pub fn build_toolbox() -> ToolBox {
-    let tools: Vec<Box<dyn Tool>> = vec![Box::new(CalculatorTool), Box::new(WebSearchTool)];
+pub async fn build_toolbox() -> anyhow::Result<ToolBox> {
+    // 读取Function calling
+    let mut tools: Vec<Box<dyn Tool>> = vec![Box::new(CalculatorTool), Box::new(WebSearchTool)];
 
-    tools
+    // 加载MCP的tools
+    let mcp_client = Arc::new(McpClient::connect().await?);
+
+    for tool in mcp_client.list_tools().await? {
+        tools.push(Box::new(McpTool::new(mcp_client.clone(), tool)));
+    }
+    Ok(tools
         .into_iter()
         .map(|t| (t.name().to_string(), t))
-        .collect()
+        .collect())
 }

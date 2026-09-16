@@ -11,7 +11,7 @@ async fn main() -> anyhow::Result<()> {
         .finish();
     tracing::subscriber::set_global_default(subscriber)?;
 
-    let tools = build_toolbox();
+    let tools = build_toolbox().await?;
     let ret = chat_complete(
         KIMI_K27_CODE_MODEL,
         Some(
