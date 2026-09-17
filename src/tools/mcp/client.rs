@@ -13,7 +13,7 @@ pub struct McpClient {
 
 // mcp client 负责启动mcp server
 impl McpClient {
-    /// 把 expense_mcp_server 当子进程拉起来，并建立连接
+    /// 把 web_mcp_server 当子进程拉起来，并建立连接
     pub async fn connect() -> Result<Self> {
         let service = ()
             .serve(TokioChildProcess::new(Command::new("cargo").configure(

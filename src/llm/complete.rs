@@ -4,7 +4,7 @@ use async_openai::types::chat::{
     ChatCompletionTools, CreateChatCompletionRequestArgs,
 };
 
-use crate::tools::ToolBox;
+use crate::{agent::ExecutionContext, tools::ToolBox};
 
 pub async fn chat_complete(
     model: &str,
@@ -31,6 +31,7 @@ pub async fn chat_complete(
             .into(),
     );
 
+    // 过滤工具，没有定义的工具不会传递给llm
     let tool_definitions: Vec<ChatCompletionTools> = tools_box
         .values()
         .filter_map(|p| match p.definition() {
@@ -42,6 +43,7 @@ pub async fn chat_complete(
         })
         .collect();
 
+    // 循环调用llm
     loop {
         let request = CreateChatCompletionRequestArgs::default()
             .model(model)
@@ -60,6 +62,7 @@ pub async fn chat_complete(
             .ok_or_else(|| anyhow::anyhow!("no message to resp"))?
             .message;
 
+        // 拿到返回结果，判断是否需要工具调用
         if let Some(tool_calls) = msg.tool_calls {
             messages.push(
                 ChatCompletionRequestAssistantMessageArgs::default()
@@ -77,19 +80,21 @@ pub async fn chat_complete(
                         tracing::info!("tool call function_name={function_name},args={args}");
 
                         let tool_result = match tools_box.get(&function_name) {
-                            Some(tool) => match tool.execute(&args).await {
-                                Ok(result) => {
-                                    tracing::info!("tool result = {result}");
-                                    result
+                            Some(tool) => {
+                                match tool.execute(&args, &ExecutionContext::default()).await {
+                                    Ok(result) => {
+                                        tracing::info!("tool result = {result}");
+                                        result
+                                    }
+                                    Err(error) => {
+                                        let err_msg = format!("tool call error={error}");
+                                        tracing::error!(err_msg);
+                                        err_msg
+                                    }
                                 }
-                                Err(error) => {
-                                    let err_msg = format!("tool call error={error}");
-                                    tracing::error!(err_msg);
-                                    err_msg
-                                }
-                            },
+                            }
                             None => {
-                                let err_msg = format!("not support calculation");
+                                let err_msg = format!("not support tools");
                                 tracing::error!(err_msg);
                                 err_msg
                             }
@@ -106,6 +111,7 @@ pub async fn chat_complete(
                 }
             }
         } else {
+            // 没有工具需要执行说明llm已经获取到结果了，直接返回
             let content = msg
                 .content
                 .ok_or_else(|| anyhow::anyhow!("no content to resp"))?;

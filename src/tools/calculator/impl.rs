@@ -1,9 +1,12 @@
 use schemars::schema_for;
 use serde_json::Value;
 
-use crate::tools::{
-    calculator::execute::{CalculatorArgs, calculator},
-    tool::Tool,
+use crate::{
+    agent::ExecutionContext,
+    tools::{
+        calculator::execute::{CalculatorArgs, calculator},
+        tool::Tool,
+    },
 };
 
 pub struct CalculatorTool;
@@ -23,7 +26,11 @@ impl Tool for CalculatorTool {
             .expect("failed to serialize CalculatorArgs schema")
     }
 
-    async fn execute(&self, args_json: &str) -> anyhow::Result<String> {
+    async fn execute(
+        &self,
+        args_json: &str,
+        _context: &ExecutionContext,
+    ) -> anyhow::Result<String> {
         let arg: CalculatorArgs = serde_json::from_str(args_json)?;
         let ret = calculator(&arg.operator, arg.first_number, arg.second_number);
         match ret {

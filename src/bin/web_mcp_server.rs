@@ -23,17 +23,17 @@ struct ExpenseServer {
 }
 
 impl ExpenseServer {
+    // 优先读环境变量，读不到就用本地默认值，
+    // 这样以后部署到别的地方也不用改代码
     fn new() -> Self {
         Self {
             http: reqwest::Client::new(),
-            // 优先读环境变量，读不到就用本地默认值，
-            // 这样以后部署到别的地方也不用改代码
             base_url: std::env::var("EXPENSE_API_URL")
                 .unwrap_or_else(|_| "http://localhost:9999".to_string()),
         }
     }
 
-    /// 六个工具方法共用的"响应处理"逻辑，避免每个方法都写一遍
+    /// 公用的相应逻辑，所有的调用都调用它
     /// 同样的判断。核心思路：
     /// - 请求本身失败（网络错误等）→ 包装成 McpError
     /// - 请求发出去了，但 API 返回非 2xx（比如 404 / 401 / 400）→ 也算 McpError
