@@ -5,6 +5,22 @@ use uuid::Uuid;
 
 use crate::agent::event::Event;
 
+#[derive(Debug, Clone, Copy, Default)]
+pub struct TokenUsage {
+    pub prompt_tokens: u32,
+    pub completion_tokens: u32,
+    pub total_tokens: u32,
+}
+
+impl TokenUsage {
+    // 累计token用量
+    pub fn add(&mut self, prompt_tokens: u32, completion_tokens: u32, total_tokens: u32) {
+        self.prompt_tokens += prompt_tokens;
+        self.completion_tokens += completion_tokens;
+        self.total_tokens += total_tokens;
+    }
+}
+
 // 一个ExecutionContext包含多个Event
 // 执行步数，防止出现死循环
 // state:临时的数据
@@ -16,6 +32,7 @@ pub struct ExecutionContext {
     pub current_step: u32,
     pub state: HashMap<String, Value>,
     pub final_result: Option<String>,
+    pub usage: TokenUsage,
 }
 
 impl ExecutionContext {
@@ -26,6 +43,7 @@ impl ExecutionContext {
             current_step: 0,
             state: HashMap::new(),
             final_result: None,
+            usage: TokenUsage::default(),
         }
     }
     // 添加event

@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use ai_agent::{agent::Agent, content::KIMI_K27_CODE_MODEL, tools::build_toolbox};
 use tracing::Level;
 use tracing_subscriber::FmtSubscriber;
@@ -25,8 +27,8 @@ async fn main() -> anyhow::Result<()> {
         now
     );
 
-    let tools = build_toolbox().await?;
-    let agent = Agent::new(KIMI_K27_CODE_MODEL, Some(&instructions), &tools).with_max_step(8);
+    let tools = Arc::new(build_toolbox().await?);
+    let agent = Agent::new(KIMI_K27_CODE_MODEL, Some(instructions), tools).with_max_step(8);
     let ret = agent.run("2026年女篮世界杯决赛比分").await?;
     tracing::info!("答案={:#?}", ret);
 

@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use async_openai::types::chat::{
     ChatCompletionMessageToolCall, ChatCompletionMessageToolCalls,
     ChatCompletionRequestAssistantMessageArgs, ChatCompletionRequestMessage,
@@ -17,20 +19,24 @@ pub struct AgentResult {
     pub context: ExecutionContext,
 }
 
-pub struct Agent<'a> {
-    model: &'a str,
-    instructions: Option<&'a str>,
-    toolbox: &'a ToolBox,
+pub struct Agent {
+    model: String,
+    instructions: Option<String>,
+    toolbox: Arc<ToolBox>,
     max_steps: u32,
 }
 
-impl<'a> Agent<'a> {
-    pub fn new(model: &'a str, instructions: Option<&'a str>, toolbox: &'a ToolBox) -> Self {
+impl Agent {
+    pub fn new(
+        model: impl Into<String>,
+        instructions: Option<impl Into<String>>,
+        toolbox: Arc<ToolBox>,
+    ) -> Self {
         Self {
-            model,
-            instructions,
+            model: model.into(),
+            instructions: instructions.map(Into::into),
             toolbox,
-            max_steps: 0,
+            max_steps: 10,
         }
     }
 
@@ -39,7 +45,7 @@ impl<'a> Agent<'a> {
         self
     }
 
-    pub async fn run(&self, user_input: &'a str) -> anyhow::Result<AgentResult> {
+    pub async fn run(&self, user_input: &str) -> anyhow::Result<AgentResult> {
         let mut context = ExecutionContext::new();
 
         context.add_event(Event::new(
@@ -76,7 +82,7 @@ impl<'a> Agent<'a> {
             let messages = self.build_message(&context)?;
 
             let request = CreateChatCompletionRequestArgs::default()
-                .model(self.model)
+                .model(self.model.clone())
                 .messages(messages)
                 .tools(tool_definition.clone())
                 .max_tokens(204890u32)
@@ -127,10 +133,10 @@ impl<'a> Agent<'a> {
     ) -> anyhow::Result<Vec<ChatCompletionRequestMessage>> {
         let mut messages = Vec::new();
         // 系统提示词
-        if let Some(system) = self.instructions {
+        if let Some(system) = &self.instructions {
             messages.push(
                 ChatCompletionRequestSystemMessageArgs::default()
-                    .content(system)
+                    .content(system.as_str())
                     .build()?
                     .into(),
             );
