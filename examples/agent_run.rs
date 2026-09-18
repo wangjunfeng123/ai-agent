@@ -31,6 +31,12 @@ async fn main() -> anyhow::Result<()> {
     let agent = Agent::new(KIMI_K27_CODE_MODEL, Some(instructions), tools).with_max_step(8);
     let ret = agent.run("2026年女篮世界杯决赛比分").await?;
     tracing::info!("答案={:#?}", ret);
+    tracing::info!(
+        "token 用量：prompt:{}\n completion:{}\n total:{}",
+        ret.context.usage.prompt_tokens,
+        ret.context.usage.completion_tokens,
+        ret.context.usage.total_tokens
+    );
 
     anyhow::Ok(())
 }

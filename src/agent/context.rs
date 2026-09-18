@@ -21,10 +21,11 @@ impl TokenUsage {
     }
 }
 
-// 一个ExecutionContext包含多个Event
-// 执行步数，防止出现死循环
-// state:临时的数据
-// final_result 最终的结果
+// ExecutionContext是整个agent的核心组件；
+//  1. 一个ExecutionContext包含多个Event
+//  2. 执行步数，防止出现死循环
+//  3. state:临时的数据
+//  4. final_result 最终的结果
 #[derive(Debug)]
 pub struct ExecutionContext {
     pub execution_id: String,
