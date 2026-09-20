@@ -1,6 +1,9 @@
 // 把块分成小块的方法
 // 3个参数 => 输入的文本，块的大小，重叠区域的大小
 pub fn fixed_length_chunking(text: &str, chunk_size: usize, overlap: usize) -> Vec<String> {
+    if chunk_size == 0 {
+        return Vec::new();
+    }
     assert!(chunk_size > overlap);
 
     let chars: Vec<char> = text.chars().collect();
