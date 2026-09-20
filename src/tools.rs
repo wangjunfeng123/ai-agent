@@ -1,4 +1,8 @@
 pub mod calculator;
+pub mod file_delete;
+pub mod file_list;
+pub mod file_read;
+pub mod file_unzip;
 pub mod mcp;
 pub mod tool;
 pub mod web_search;
