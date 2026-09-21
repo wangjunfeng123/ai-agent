@@ -47,7 +47,7 @@ impl Tool for ReadImagesTool {
         _context: &ExecutionContext,
     ) -> anyhow::Result<String> {
         let arg: ReadImagesArgs = serde_json::from_str(args_json)?;
-        let ret = analyze_images(&arg, &self.model);
+        let ret = analyze_images(&arg, &self.model).await;
         match ret {
             Ok(val) => Ok(val),
             Err(err) => Ok(format!("Error: {err}")),
