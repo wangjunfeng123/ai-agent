@@ -4,6 +4,7 @@ pub mod file_list;
 pub mod file_read;
 pub mod file_unzip;
 pub mod mcp;
+pub mod read_images;
 pub mod tool;
 pub mod web_search;
 
