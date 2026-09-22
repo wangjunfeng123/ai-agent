@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use ai_agent::{
     agent::Agent,
-    content::{DEEPSEEK_V4_FLASH, KIMI_K27_CODE_MODEL, VISION_MODEL},
+    content::{DEEPSEEK_V4_FLASH, VISION_MODEL},
     tools::build_file_explorer_toolbox,
 };
 use tracing::Level;

@@ -18,7 +18,7 @@ pub fn unzip(zip_path: &str, extract_to: Option<&str>) -> anyhow::Result<String>
     let file = File::open(zip_path)?;
     let mut archive = zip::ZipArchive::new(file)?;
 
-    let names = Vec::with_capacity(archive.len());
+    let mut names = Vec::with_capacity(archive.len());
 
     for i in 0..archive.len() {
         let mut entry = archive.by_index(i)?;
