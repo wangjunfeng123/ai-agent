@@ -4,48 +4,49 @@ use std::path::{Path, PathBuf};
 
 // 解压缩
 pub fn unzip(zip_path: &str, extract_to: Option<&str>) -> anyhow::Result<String> {
-    let path = Path::new(zip_path);
-    if !path.exists() {
-        anyhow::bail!("file not found ={}", path.display());
+    let zip_path = Path::new(zip_path);
+    if !zip_path.exists() {
+        anyhow::bail!("file not found ={}", zip_path.display());
     }
+
+    let extract_to: PathBuf = match extract_to {
+        Some(dir) => PathBuf::from(dir),
+        None => zip_path.with_extension(""),
+    };
+    fs::create_dir_all(&extract_to)?;
 
     let file = File::open(zip_path)?;
     let mut archive = zip::ZipArchive::new(file)?;
 
-    let dest = extract_to
-        .map(PathBuf::from)
-        .unwrap_or_else(|| PathBuf::from("./"));
-    fs::create_dir_all(&dest)?;
+    let names = Vec::with_capacity(archive.len());
 
-    let mut extracted = 0u32;
     for i in 0..archive.len() {
         let mut entry = archive.by_index(i)?;
 
-        // 过滤非法路径（绝对路径 / `..` 逃逸），防止 Zip 路径穿越
-        let Some(rel_path) = entry.enclosed_name() else {
-            tracing::warn!("skip entry with unsafe path at index {i}");
-            continue;
-        };
-
-        let out_path = dest.join(rel_path);
+        let out_path = extract_to.join(entry.name());
+        names.push(entry.name().to_string());
 
         if entry.is_dir() {
             fs::create_dir_all(&out_path)?;
-            continue;
+        } else {
+            if let Some(parent) = out_path.parent() {
+                fs::create_dir_all(parent)?;
+            }
+            let mut out_file = fs::File::create(&out_path)?;
+            io::copy(&mut entry, &mut out_file)?;
         }
-
-        if let Some(parent) = out_path.parent() {
-            fs::create_dir_all(parent)?;
-        }
-
-        let mut output = File::create(&out_path)?;
-        io::copy(&mut entry, &mut output)?;
-        extracted += 1;
+    }
+    let mut summary = format!(
+        "Extractd {} files to {} /\n\nContents:\n",
+        names.len(),
+        extract_to.display()
+    );
+    for name in names.iter().take(20) {
+        summary.push_str(&format!(". -{name}\n"));
+    }
+    if names.len() > 20 {
+        summary.push_str(&format!(".. and {} more files.\n", names.len() - 20));
     }
 
-    Ok(format!(
-        "extracted {} files into {}",
-        extracted,
-        dest.display()
-    ))
+    Ok(summary)
 }
