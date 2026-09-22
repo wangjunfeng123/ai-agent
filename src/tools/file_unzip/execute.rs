@@ -37,7 +37,7 @@ pub fn unzip(zip_path: &str, extract_to: Option<&str>) -> anyhow::Result<String>
         }
     }
     let mut summary = format!(
-        "Extractd {} files to {} /\n\nContents:\n",
+        "Extractd {} files to {}/\n\nContents:\n",
         names.len(),
         extract_to.display()
     );
