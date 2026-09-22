@@ -22,6 +22,9 @@ path ="examples/agent_run.rs"
 [[example]]
 name = "web_search"
 path ="examples/web_search.rs"
+[[example]]
+name = "file_explorer"
+path ="examples/file_explorer.rs"
 
 [dependencies]
 anyhow = "1.0.102"

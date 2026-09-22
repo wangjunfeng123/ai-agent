@@ -107,7 +107,7 @@ impl Agent {
                 .retry(
                     ExponentialBuilder::default()
                         .with_max_times(3)
-                        .with_min_delay(Duration::from_millis(50)),
+                        .with_min_delay(Duration::from_millis(5050)),
                 )
                 .await?;
             tracing::info!("llm response={:#?}", resp);

@@ -28,7 +28,7 @@ pub struct ReadFileTool;
 #[async_trait::async_trait]
 impl Tool for ReadFileTool {
     fn name(&self) -> &str {
-        "read-file"
+        "read_file"
     }
 
     fn description(&self) -> &str {

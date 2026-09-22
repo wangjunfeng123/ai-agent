@@ -14,7 +14,12 @@ use anyhow::Ok;
 
 use crate::tools::{
     calculator::r#impl::CalculatorTool,
+    file_delete::r#impl::DeleteFileTool,
+    file_list::r#impl::ListFileTool,
+    file_read::r#impl::ReadFileTool,
+    file_unzip::r#impl::UnzipFileTool,
     mcp::{client::McpClient, tool::McpTool},
+    read_images::r#impl::ReadImagesTool,
     tool::Tool,
     web_search::r#impl::WebSearchTool,
 };
@@ -31,8 +36,23 @@ pub async fn build_toolbox() -> anyhow::Result<ToolBox> {
     for tool in mcp_client.list_tools().await? {
         tools.push(Box::new(McpTool::new(mcp_client.clone(), tool)));
     }
-    Ok(tools
+    Ok(into_toolbox(tools))
+}
+
+pub fn build_file_explorer_toolbox(vision_model: impl Into<String>) -> ToolBox {
+    let list: Vec<Box<dyn Tool>> = vec![
+        Box::new(ReadImagesTool::new(vision_model)),
+        Box::new(DeleteFileTool),
+        Box::new(ListFileTool),
+        Box::new(ReadFileTool),
+        Box::new(UnzipFileTool),
+    ];
+    into_toolbox(list)
+}
+
+fn into_toolbox(tools: Vec<Box<dyn Tool>>) -> ToolBox {
+    tools
         .into_iter()
         .map(|t| (t.name().to_string(), t))
-        .collect())
+        .collect()
 }

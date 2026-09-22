@@ -29,7 +29,7 @@ impl ReadImagesTool {
 #[async_trait::async_trait]
 impl Tool for ReadImagesTool {
     fn name(&self) -> &str {
-        "read-images"
+        "read_images"
     }
 
     fn description(&self) -> &str {
