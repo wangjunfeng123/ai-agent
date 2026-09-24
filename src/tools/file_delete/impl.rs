@@ -1,4 +1,3 @@
-use anyhow::Ok;
 use schemars::JsonSchema;
 use serde::Deserialize;
 use serde_json::Value;
@@ -33,6 +32,16 @@ impl Tool for DeleteFileTool {
         _context: &ExecutionContext,
     ) -> anyhow::Result<String> {
         let arg: DeleteFileArgs = serde_json::from_str(args_json)?;
-        Ok(format!("file {} has been deleted", arg.file_path))
+        tracing::info!("🗑️ attempting to delete:{}", arg.file_path);
+        match std::fs::remove_file(&arg.file_path) {
+            Ok(()) => {
+                tracing::info!("✅ delete file succss path:{}", arg.file_path);
+                Ok(format!("file {} has been deleted", arg.file_path))
+            }
+            Err(e) => {
+                tracing::info!("❎ delete failed path:{}.{e}", arg.file_path);
+                Err(anyhow::anyhow!("delete failed path:{}.{e}", arg.file_path))
+            }
+        }
     }
 }

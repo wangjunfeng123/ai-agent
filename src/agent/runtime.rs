@@ -12,7 +12,10 @@ use backon::{ExponentialBuilder, Retryable};
 use schemars::JsonSchema;
 
 use crate::{
-    agent::{ContentItem, Event, ExecutionContext, ToolResultStatus},
+    agent::{
+        ContentItem, Event, ExecutionContext, ToolResultStatus,
+        callback::{AfterToolCallBack, BeforeToolCallBack, ToolCallView},
+    },
     content::FINAL_ANSWER,
     tools::ToolBox,
 };
@@ -38,6 +41,8 @@ pub struct Agent {
     instructions: Option<String>,
     toolbox: Arc<ToolBox>,
     max_steps: u32,
+    before_tool_callbacks: Vec<Arc<dyn BeforeToolCallBack>>,
+    after_tool_callbacks: Vec<Arc<dyn AfterToolCallBack>>,
 }
 
 impl Agent {
@@ -51,11 +56,23 @@ impl Agent {
             instructions: instructions.map(Into::into),
             toolbox,
             max_steps: 10,
+            before_tool_callbacks: Vec::new(),
+            after_tool_callbacks: Vec::new(),
         }
     }
 
     pub fn with_max_step(mut self, max_steps: u32) -> Self {
         self.max_steps = max_steps;
+        self
+    }
+
+    pub fn with_before_tool_callback(mut self, callback: Arc<dyn BeforeToolCallBack>) -> Self {
+        self.before_tool_callbacks.push(callback);
+        self
+    }
+
+    pub fn with_after_tool_callback(mut self, callback: Arc<dyn AfterToolCallBack>) -> Self {
+        self.after_tool_callbacks.push(callback);
         self
     }
 
@@ -401,23 +418,52 @@ impl Agent {
 
                 tracing::info!("tool call function_name={name},arg={arg}");
 
-                let (status, content) = match self.toolbox.get(name) {
-                    Some(tool) => match tool.execute(arg, context).await {
-                        Ok(result) => {
-                            tracing::info!("tool execute success and result={result}");
-                            (ToolResultStatus::Success, result)
-                        }
-                        Err(err) => {
-                            let err_msg = format!("tool execute failed and err_msg={err}");
-                            tracing::info!(err_msg);
-                            (ToolResultStatus::Error, err_msg)
+                let view = ToolCallView {
+                    tool_call_id: &fun.id,
+                    name,
+                    arguments: arg,
+                };
+
+                // 如果有人拦截，short_circuited=Some(ret)
+                let mut short_circuited = None;
+                for callback in &self.before_tool_callbacks {
+                    if let Some(result) = callback.call(context, view).await {
+                        short_circuited = Some(result);
+                        break;
+                    }
+                }
+                let (mut status, mut content) = match short_circuited {
+                    Some(result) => (ToolResultStatus::Success, result),
+                    None => match self.toolbox.get(name) {
+                        Some(tool) => match tool.execute(arg, context).await {
+                            Ok(result) => {
+                                tracing::info!("tool execute success and result={result}");
+                                (ToolResultStatus::Success, result)
+                            }
+                            Err(err) => {
+                                let err_msg = format!("tool execute failed and err_msg={err}");
+                                tracing::info!(err_msg);
+                                (ToolResultStatus::Error, err_msg)
+                            }
+                        },
+                        None => {
+                            tracing::info!("tool not found");
+                            (ToolResultStatus::Error, "tool not found".to_string())
                         }
                     },
-                    None => {
-                        tracing::info!("tool not found");
-                        (ToolResultStatus::Error, "tool not found".to_string())
-                    }
                 };
+
+                // 调用后执行callback
+                for cb in &self.after_tool_callbacks {
+                    if let Some((new_status, new_content)) =
+                        cb.call(context, &fun.id, name, status, &content).await
+                    {
+                        status = new_status;
+                        content = new_content;
+                        break;
+                    }
+                }
+
                 result_items.push(ContentItem::ToolResult {
                     tool_call_id: fun.id.clone(),
                     name: fun.function.name.clone(),
