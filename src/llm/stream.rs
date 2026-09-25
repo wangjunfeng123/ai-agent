@@ -41,9 +41,9 @@ fn chat_stream(
         while let Some(response_ret) = stream.next().await {
             match response_ret {
                 Ok(chunk) => if let Some(choice) = chunk.choices.first() {
-                        if let Some(new_text) = &choice.delta.content {
-                    yield Ok(new_text.clone());
-                }
+                    if let Some(new_text) = &choice.delta.content {
+                        yield Ok(new_text.clone());
+                    }
                 },
                 Err(err) => yield Err(err.into()),
             }

@@ -16,7 +16,7 @@ pub async fn embed_texts(text: &[String], model: &str) -> anyhow::Result<Vec<Vec
     let response = client.embeddings().create(request).await?;
     let mut data = response.data;
 
-    data.sort_by_key(|e| e.index);
+    data.sort_by_key(|p| p.index);
     Ok(data.into_iter().map(|e| e.embedding).collect())
 }
 
@@ -25,5 +25,5 @@ pub async fn embed_text(text: &str, model: &str) -> anyhow::Result<Vec<f32>> {
     let owned = [text.to_string()];
     let mut list = embed_texts(&owned, model).await?;
     list.pop()
-        .ok_or_else(|| anyhow::anyhow!("embeding api  return no vectors"))
+        .ok_or_else(|| anyhow::anyhow!("embeding api return no vectors"))
 }

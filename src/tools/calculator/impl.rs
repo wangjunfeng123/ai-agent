@@ -1,13 +1,27 @@
-use schemars::schema_for;
+use schemars::{JsonSchema, schema_for};
+use serde::Deserialize;
 use serde_json::Value;
 
 use crate::{
     agent::ExecutionContext,
-    tools::{
-        calculator::execute::{CalculatorArgs, calculator},
-        tool::Tool,
-    },
+    tools::{calculator::execute::calculator, tool::Tool},
 };
+
+#[derive(Debug, Deserialize, JsonSchema)]
+pub struct CalculatorArgs {
+    pub operator: Operator,
+    pub first_number: f64,
+    pub second_number: f64,
+}
+
+#[derive(Debug, Clone, Copy, Deserialize, JsonSchema)]
+#[serde(rename_all = "lowercase")]
+pub enum Operator {
+    Add,
+    Subtract,
+    Multiply,
+    Divide,
+}
 
 pub struct CalculatorTool;
 
@@ -32,7 +46,13 @@ impl Tool for CalculatorTool {
         _context: &ExecutionContext,
     ) -> anyhow::Result<String> {
         let arg: CalculatorArgs = serde_json::from_str(args_json)?;
-        let ret = calculator(&arg.operator, arg.first_number, arg.second_number);
+        let operator = match arg.operator {
+            Operator::Add => "+",
+            Operator::Subtract => "-",
+            Operator::Multiply => "*",
+            Operator::Divide => "/",
+        };
+        let ret = calculator(operator, arg.first_number, arg.second_number);
         match ret {
             Ok(val) => Ok(val.to_string()),
             Err(err) => Ok(format!("Error: {err}")),

@@ -6,6 +6,11 @@ use async_openai::types::chat::{
 
 use crate::{agent::ExecutionContext, tools::ToolBox};
 
+/// 循环调用+工具调用
+/// model 模型
+/// system 系统提示词
+/// prompt用户提示词
+/// tools_box工具列表
 pub async fn chat_complete(
     model: &str,
     system: Option<&str>,

@@ -1,10 +1,9 @@
-use std::collections::HashMap;
-
+use crate::agent::event::Event;
 use serde_json::Value;
+use std::collections::HashMap;
 use uuid::Uuid;
 
-use crate::agent::event::Event;
-
+/// token使用量统计
 #[derive(Debug, Clone, Copy, Default)]
 pub struct TokenUsage {
     pub prompt_tokens: u32,
@@ -28,11 +27,17 @@ impl TokenUsage {
 //  4. final_result 最终的结果
 #[derive(Debug)]
 pub struct ExecutionContext {
+    // 唯一ID
     pub execution_id: String,
+    // 事件列表
     pub events: Vec<Event>,
+    // 当前步数
     pub current_step: u32,
+    // 临时存储的草稿本
     pub state: HashMap<String, Value>,
+    // 最终结果
     pub final_result: Option<String>,
+    // token使用量
     pub usage: TokenUsage,
 }
 

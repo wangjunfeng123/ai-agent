@@ -37,11 +37,17 @@ pub struct StructuredAgentResult<T> {
 }
 
 pub struct Agent {
+    // model模型
     model: String,
+    // instructions提示词
     instructions: Option<String>,
+    // toolbox工具列表
     toolbox: Arc<ToolBox>,
+    // max_steps最大步数，防止死循环
     max_steps: u32,
+    // before_tool_callbacks工具之前的调用
     before_tool_callbacks: Vec<Arc<dyn BeforeToolCallBack>>,
+    // after_tool_callbacks工具之后的调用
     after_tool_callbacks: Vec<Arc<dyn AfterToolCallBack>>,
 }
 
@@ -79,6 +85,7 @@ impl Agent {
     pub async fn run(&self, user_input: &str) -> anyhow::Result<AgentResult> {
         let mut context = ExecutionContext::new();
 
+        // 0. 用户请求保存到events
         context.add_event(Event::new(
             context.execution_id.clone(),
             "user".to_string(),
@@ -96,7 +103,7 @@ impl Agent {
             .filter_map(|t| match t.definition() {
                 Ok(def) => Some(def),
                 Err(e) => {
-                    tracing::error!("skip tool {} ,failed to get tool definition {e}", t.name());
+                    tracing::error!("skip tool {},failed to get tool definition {e}", t.name());
                     None
                 }
             })
@@ -119,7 +126,7 @@ impl Agent {
                 .max_tokens(204890u32)
                 .build()?;
 
-            // 增加重试机制，延迟50ms在执行
+            // 增加重试机制，延迟5050ms在执行
             let resp = (|| async { client.chat().create(request.clone()).await })
                 .retry(
                     ExponentialBuilder::default()
@@ -256,7 +263,7 @@ impl Agent {
                 .message;
 
             let tool_calls = msg.tool_calls.ok_or_else(|| {
-                anyhow::anyhow!("model return no tool call despite tool_choice =required")
+                anyhow::anyhow!("model return no tool call despite tool_choice=required")
             })?;
 
             self.record_tool_calls(&mut context, &tool_calls);
@@ -295,7 +302,7 @@ impl Agent {
         }
     }
 
-    /// 构建上下文中的request
+    /// 构建上下文中的messages，组装到对应的request
     /// 第一次发起调用的时候，context.events.ContentItem 是没有工具类型的调用的
     fn build_message(
         &self,
@@ -433,7 +440,7 @@ impl Agent {
                     }
                 }
                 let (mut status, mut content) = match short_circuited {
-                    Some(result) => (ToolResultStatus::Success, result),
+                    Some(callback_result) => (ToolResultStatus::Success, callback_result),
                     None => match self.toolbox.get(name) {
                         Some(tool) => match tool.execute(arg, context).await {
                             Ok(result) => {
