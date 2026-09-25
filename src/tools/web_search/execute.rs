@@ -15,7 +15,7 @@ pub struct WebSearchArgs {
 }
 
 fn default_max_results() -> u8 {
-    2
+    5
 }
 
 fn default_topic() -> String {
