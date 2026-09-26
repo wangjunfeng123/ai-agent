@@ -14,7 +14,8 @@ use schemars::JsonSchema;
 use crate::{
     agent::{
         ContentItem, Event, ExecutionContext, ToolResultStatus,
-        callback::{AfterToolCallBack, BeforeToolCallBack, ToolCallView},
+        callback::{AfterToolCallBack, BeforeLlmCallback, BeforeToolCallBack, ToolCallView},
+        llm_request::LlmRequest,
     },
     content::FINAL_ANSWER,
     tools::ToolBox,
@@ -49,6 +50,8 @@ pub struct Agent {
     before_tool_callbacks: Vec<Arc<dyn BeforeToolCallBack>>,
     // after_tool_callbacks工具之后的调用
     after_tool_callbacks: Vec<Arc<dyn AfterToolCallBack>>,
+    // before llm request
+    before_llm_callbacks: Vec<Arc<dyn BeforeLlmCallback>>,
 }
 
 impl Agent {
@@ -64,6 +67,7 @@ impl Agent {
             max_steps: 10,
             before_tool_callbacks: Vec::new(),
             after_tool_callbacks: Vec::new(),
+            before_llm_callbacks: Vec::new(),
         }
     }
 
@@ -79,6 +83,11 @@ impl Agent {
 
     pub fn with_after_tool_callback(mut self, callback: Arc<dyn AfterToolCallBack>) -> Self {
         self.after_tool_callbacks.push(callback);
+        self
+    }
+
+    pub fn with_before_llm_callback(mut self, cb: Arc<dyn BeforeLlmCallback>) -> Self {
+        self.before_llm_callbacks.push(cb);
         self
     }
 
@@ -117,7 +126,8 @@ impl Agent {
                 );
             }
 
-            let messages = self.build_message(&context)?;
+            let llm_request = self.prepare_llm_request(&mut context).await;
+            let messages = self.build_message(&llm_request)?;
 
             let request = CreateChatCompletionRequestArgs::default()
                 .model(self.model.clone())
@@ -224,7 +234,8 @@ impl Agent {
                 );
             }
 
-            let messages = self.build_message(&context)?;
+            let llm_request = self.prepare_llm_request(&mut context).await;
+            let messages = self.build_message(&llm_request)?;
 
             let request = CreateChatCompletionRequestArgs::default()
                 .model(self.model.clone())
@@ -302,11 +313,29 @@ impl Agent {
         }
     }
 
+    /// 构建llmrequest,这个方法主要是用于大模型调用前上下文的精简压缩，
+    /// 防止上下文越搞越大，无法管理；
+    async fn prepare_llm_request(&self, context: &mut ExecutionContext) -> LlmRequest {
+        let mut request = LlmRequest {
+            instructions: Vec::new(),
+            constents: context
+                .events
+                .iter()
+                .flat_map(|ev| ev.content.iter().cloned())
+                .collect(),
+        };
+        for cb in &self.before_llm_callbacks {
+            // 执行回调，可能会压缩request中的数据
+            cb.call(context, &mut request).await;
+        }
+        request
+    }
+
     /// 构建上下文中的messages，组装到对应的request
     /// 第一次发起调用的时候，context.events.ContentItem 是没有工具类型的调用的
     fn build_message(
         &self,
-        context: &ExecutionContext,
+        request: &LlmRequest,
     ) -> anyhow::Result<Vec<ChatCompletionRequestMessage>> {
         let mut messages = Vec::new();
         // 系统提示词
@@ -318,67 +347,72 @@ impl Agent {
                     .into(),
             );
         };
-        // 提取Event中的
-        for event in &context.events {
-            for item in &event.content {
-                match item {
-                    ContentItem::Message { role, content } => {
-                        let message: ChatCompletionRequestMessage = if role == "user" {
-                            ChatCompletionRequestUserMessageArgs::default()
-                                .content(content.clone())
-                                .build()?
-                                .into()
-                        } else {
-                            ChatCompletionRequestAssistantMessageArgs::default()
-                                .content(content.clone())
-                                .build()?
-                                .into()
-                        };
-                        messages.push(message);
-                    }
-                    ContentItem::ToolCall {
-                        tool_call_id,
-                        name,
-                        arguments,
-                    } => {
-                        let tool_call = ChatCompletionMessageToolCalls::Function(
-                            ChatCompletionMessageToolCall {
-                                id: tool_call_id.clone(),
-                                function: FunctionCall {
-                                    name: name.clone(),
-                                    arguments: arguments.to_string(),
-                                },
+        for instruction in &request.instructions {
+            messages.push(
+                ChatCompletionRequestSystemMessageArgs::default()
+                    .content(instruction.as_str())
+                    .build()?
+                    .into(),
+            );
+        }
+
+        // 提取Event中的信息，改为提取request【经过回调处理后的信息】中的信息
+        for item in &request.constents {
+            match item {
+                ContentItem::Message { role, content } => {
+                    let message: ChatCompletionRequestMessage = if role == "user" {
+                        ChatCompletionRequestUserMessageArgs::default()
+                            .content(content.clone())
+                            .build()?
+                            .into()
+                    } else {
+                        ChatCompletionRequestAssistantMessageArgs::default()
+                            .content(content.clone())
+                            .build()?
+                            .into()
+                    };
+                    messages.push(message);
+                }
+                ContentItem::ToolCall {
+                    tool_call_id,
+                    name,
+                    arguments,
+                } => {
+                    let tool_call =
+                        ChatCompletionMessageToolCalls::Function(ChatCompletionMessageToolCall {
+                            id: tool_call_id.clone(),
+                            function: FunctionCall {
+                                name: name.clone(),
+                                arguments: arguments.to_string(),
                             },
-                        );
-                        // 同一轮模型中，可能产生多次工具调用
-                        // tool call要合并进一条assistant,
-                        // 否则llm认为是不同的助理消息
-                        if let Some(ChatCompletionRequestMessage::Assistant(last)) =
-                            messages.last_mut()
-                        {
-                            last.tool_calls.get_or_insert_with(Vec::new).push(tool_call);
-                        } else {
-                            messages.push(
-                                ChatCompletionRequestAssistantMessageArgs::default()
-                                    .tool_calls(vec![tool_call])
-                                    .build()?
-                                    .into(),
-                            );
-                        }
-                    }
-                    ContentItem::ToolResult {
-                        tool_call_id,
-                        content,
-                        ..
-                    } => {
+                        });
+                    // 同一轮模型中，可能产生多次工具调用
+                    // tool call要合并进一条assistant,
+                    // 否则llm认为是不同的助理消息
+                    if let Some(ChatCompletionRequestMessage::Assistant(last)) = messages.last_mut()
+                    {
+                        last.tool_calls.get_or_insert_with(Vec::new).push(tool_call);
+                    } else {
                         messages.push(
-                            ChatCompletionRequestToolMessageArgs::default()
-                                .tool_call_id(tool_call_id.clone())
-                                .content(content.clone())
+                            ChatCompletionRequestAssistantMessageArgs::default()
+                                .tool_calls(vec![tool_call])
                                 .build()?
                                 .into(),
                         );
                     }
+                }
+                ContentItem::ToolResult {
+                    tool_call_id,
+                    content,
+                    ..
+                } => {
+                    messages.push(
+                        ChatCompletionRequestToolMessageArgs::default()
+                            .tool_call_id(tool_call_id.clone())
+                            .content(content.clone())
+                            .build()?
+                            .into(),
+                    );
                 }
             }
         }

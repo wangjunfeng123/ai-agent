@@ -1,4 +1,4 @@
-use crate::agent::{ExecutionContext, ToolResultStatus};
+use crate::agent::{ExecutionContext, ToolResultStatus, llm_request::LlmRequest};
 
 #[derive(Debug, Clone, Copy)]
 pub struct ToolCallView<'a> {
@@ -25,4 +25,9 @@ pub trait AfterToolCallBack: Sync + Send {
         status: ToolResultStatus,
         content: &str,
     ) -> Option<(ToolResultStatus, String)>;
+}
+
+#[async_trait::async_trait]
+pub trait BeforeLlmCallback: Sync + Send {
+    async fn call(&self, context: &ExecutionContext, request: &LlmRequest);
 }
