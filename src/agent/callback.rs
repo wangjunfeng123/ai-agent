@@ -7,6 +7,7 @@ pub struct ToolCallView<'a> {
     pub arguments: &'a str,
 }
 
+// 工具前置调用
 #[async_trait::async_trait]
 pub trait BeforeToolCallBack: Sync + Send {
     // Some 说明需要拦截
@@ -15,6 +16,7 @@ pub trait BeforeToolCallBack: Sync + Send {
     -> Option<String>;
 }
 
+// 工具后置调用
 #[async_trait::async_trait]
 pub trait AfterToolCallBack: Sync + Send {
     async fn call(
@@ -27,7 +29,8 @@ pub trait AfterToolCallBack: Sync + Send {
     ) -> Option<(ToolResultStatus, String)>;
 }
 
+// llm前置调用精简
 #[async_trait::async_trait]
 pub trait BeforeLlmCallback: Sync + Send {
-    async fn call(&self, context: &ExecutionContext, request: &LlmRequest);
+    async fn call(&self, context: &ExecutionContext, request: &mut LlmRequest);
 }

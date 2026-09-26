@@ -6,4 +6,5 @@
 // 2.2 工具后的调用：可以更改执行的结果\状态
 // 3.整个任务跑完之后
 pub mod approval;
+pub mod context_optimizer;
 pub mod search_compressor;
