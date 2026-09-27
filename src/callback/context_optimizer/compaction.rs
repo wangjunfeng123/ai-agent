@@ -2,9 +2,7 @@ use std::collections::HashMap;
 
 use serde_json::Value;
 
-use crate::agent::{
-    ContentItem, ExecutionContext, callback::BeforeLlmCallback, llm_request::LlmRequest,
-};
+use crate::agent::{ContentItem, llm_request::LlmRequest};
 
 //
 pub struct Compaction {
@@ -69,9 +67,4 @@ impl Compaction {
             }
         }
     }
-}
-
-#[async_trait::async_trait]
-impl BeforeLlmCallback for Compaction {
-    async fn call(&self, _context: &ExecutionContext, _request: &mut LlmRequest) {}
 }
