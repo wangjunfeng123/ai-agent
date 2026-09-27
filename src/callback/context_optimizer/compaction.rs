@@ -36,6 +36,7 @@ impl Compaction {
                         //受保护的content不压缩
                         continue;
                     } else {
+                        // 执行压缩的相关逻辑，把执行结果修改掉
                         let val = call_arg.get(&tool_call_id.to_string());
                         let replacement = match name.as_str() {
                             "read_file" => {
