@@ -1,7 +1,8 @@
 // 压缩的三种方式
 // 1.滑动窗口
-// 2.压缩
+// 2.压缩:主要是针对工具调用做压缩处理
 // 3.总结
+pub mod compaction;
 pub mod sliding_window;
 
 use crate::agent::llm_request::LlmRequest;
