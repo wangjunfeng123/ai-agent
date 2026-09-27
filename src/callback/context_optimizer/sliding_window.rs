@@ -19,7 +19,7 @@ pub struct SlidingWindow {
 
 #[async_trait::async_trait]
 impl BeforeLlmCallback for SlidingWindow {
-    async fn call(&self, _context: &ExecutionContext, request: &mut LlmRequest) {
+    async fn call(&self, _context: &mut ExecutionContext, request: &mut LlmRequest) {
         // 未超阈值：无需处理
         if count_token(&self.model, request) < self.token_threshold {
             return;

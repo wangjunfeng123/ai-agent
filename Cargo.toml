@@ -28,6 +28,9 @@ path ="examples/file_explorer.rs"
 [[example]]
 name="test_compress"
 path="examples/test_compress.rs"
+[[example]]
+name="test_context_optimizer"
+path="examples/test_context_optimizer.rs"
 
 [dependencies]
 anyhow = "1.0.102"

@@ -32,5 +32,5 @@ pub trait AfterToolCallBack: Sync + Send {
 // llm前置调用精简
 #[async_trait::async_trait]
 pub trait BeforeLlmCallback: Sync + Send {
-    async fn call(&self, context: &ExecutionContext, request: &mut LlmRequest);
+    async fn call(&self, context: &mut ExecutionContext, request: &mut LlmRequest);
 }
