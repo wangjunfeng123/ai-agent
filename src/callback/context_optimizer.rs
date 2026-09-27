@@ -4,6 +4,7 @@
 // 3.总结
 pub mod compaction;
 pub mod sliding_window;
+pub mod summarization;
 
 use crate::agent::llm_request::LlmRequest;
 
