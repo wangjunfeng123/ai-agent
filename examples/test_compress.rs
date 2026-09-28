@@ -6,6 +6,7 @@ use ai_agent::{
 };
 use tracing::Level;
 use tracing_subscriber::FmtSubscriber;
+use uuid::Uuid;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -23,7 +24,9 @@ async fn main() -> anyhow::Result<()> {
     let agent = Agent::new(DEEPSEEK_V4_FLASH, Some(instructions), toolbox)
         .with_max_step(5)
         .with_after_tool_callback(Arc::new(SearchCompressorCallback));
-    let result = agent.run("2026年女篮世界杯决赛比分是？").await?;
+    let result = agent
+        .run("2026年女篮世界杯决赛比分是？", &Uuid::new_v4().to_string())
+        .await?;
     tracing::info!("result = {}", result.output);
 
     anyhow::Ok(())

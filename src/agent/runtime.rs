@@ -18,6 +18,7 @@ use crate::{
         llm_request::LlmRequest,
     },
     content::FINAL_ANSWER,
+    session::manager::{ConsistencySessionManager, SessionManager},
     tools::ToolBox,
 };
 
@@ -52,6 +53,7 @@ pub struct Agent {
     after_tool_callbacks: Vec<Arc<dyn AfterToolCallBack>>,
     // before llm request
     before_llm_callbacks: Vec<Arc<dyn BeforeLlmCallback>>,
+    session_manager: Box<dyn SessionManager>,
 }
 
 impl Agent {
@@ -68,6 +70,7 @@ impl Agent {
             before_tool_callbacks: Vec::new(),
             after_tool_callbacks: Vec::new(),
             before_llm_callbacks: Vec::new(),
+            session_manager: Box::new(ConsistencySessionManager::new()),
         }
     }
 
@@ -91,8 +94,14 @@ impl Agent {
         self
     }
 
-    pub async fn run(&self, user_input: &str) -> anyhow::Result<AgentResult> {
-        let mut context = ExecutionContext::new();
+    pub fn with_session_manager(mut self, session_manager: impl SessionManager + 'static) -> Self {
+        self.session_manager = Box::new(session_manager);
+        self
+    }
+
+    pub async fn run(&self, user_input: &str, session_id: &str) -> anyhow::Result<AgentResult> {
+        let session = self.session_manager.get_or_create(session_id, None).await?;
+        let mut context = ExecutionContext::new(session);
 
         // 0. 用户请求保存到events
         context.add_event(Event::new(
@@ -180,6 +189,8 @@ impl Agent {
                 ));
                 context.final_result = Some(content.clone());
 
+                self.session_manager.save(context.session.clone()).await?;
+
                 return Ok(AgentResult {
                     output: content,
                     context,
@@ -194,11 +205,13 @@ impl Agent {
     pub async fn run_structured<T>(
         &self,
         user_input: &str,
+        session_id: &str,
     ) -> anyhow::Result<StructuredAgentResult<T>>
     where
         T: schemars::JsonSchema + serde::de::DeserializeOwned,
     {
-        let mut context = ExecutionContext::new();
+        let session = self.session_manager.get_or_create(session_id, None).await?;
+        let mut context = ExecutionContext::new(session);
 
         // 保存用户输入到Event
         context.add_event(Event::new(
@@ -302,6 +315,7 @@ impl Agent {
                 ));
 
                 context.final_result = Some(args);
+                self.session_manager.save(context.session.clone()).await?;
                 return Ok(StructuredAgentResult {
                     output: parsed,
                     context,
@@ -319,7 +333,7 @@ impl Agent {
         let mut request = LlmRequest {
             instructions: Vec::new(),
             constents: context
-                .events
+                .events()
                 .iter()
                 .flat_map(|ev| ev.content.iter().cloned())
                 .collect(),

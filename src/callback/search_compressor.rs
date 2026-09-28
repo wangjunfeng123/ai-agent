@@ -68,7 +68,7 @@ impl AfterToolCallBack for SearchCompressorCallback {
 
 fn extract_query(context: &ExecutionContext, tool_call_id: &str) -> Option<String> {
     context
-        .events
+        .events()
         .iter()
         .flat_map(|event| &event.content)
         .find_map(|item| match item {

@@ -7,6 +7,7 @@ use ai_agent::{
 };
 use tracing::Level;
 use tracing_subscriber::FmtSubscriber;
+use uuid::Uuid;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -42,14 +43,14 @@ async fn main() -> anyhow::Result<()> {
         "#;
 
     let agent = Agent::new(DEEPSEEK_V4_FLASH, Some(instructions), tools).with_max_step(20);
-    let result = agent.run("分析这个压缩包/Users/wangjunfeng/workspace/github/ai-agent/resources/payment.zip，看看小精灵支付平台支持支付宝吗").await?;
+    let result = agent.run("分析这个压缩包/Users/wangjunfeng/workspace/github/ai-agent/resources/payment.zip，看看小精灵支付平台支持支付宝吗", &Uuid::new_v4().to_string()).await?;
 
     tracing::info!("答案={:?}", result.output);
 
     tracing::info!(
         "\n本次执行了{}步骤，记录了{}个event",
         result.context.current_step,
-        result.context.events.len()
+        result.context.events().len()
     );
     anyhow::Ok(())
 }

@@ -46,7 +46,7 @@ impl Summarization {
         let summary_end = len.saturating_sub(self.keep_recent);
         // 上次摘要处理到的位置；首次就是第一条 user 消息
         let last_summary_idx = context
-            .state
+            .state_mut()
             .get("last_summary_idx")
             .and_then(Value::as_u64)
             .map(|v| v as usize)
@@ -71,11 +71,11 @@ impl Summarization {
 
         // 持久化增量摘要的进度（下次从本次 summary_end 接着摘要）
         context
-            .state
+            .state_mut()
             .insert("last_summary_idx".into(), Value::from(summary_end as u64));
         // 记录最近一次增量摘要的结果，便于外部查看
         context
-            .state
+            .state_mut()
             .insert("summary".into(), Value::from(summary.clone()));
 
         // 重组消息：header + 摘要占位 + 最近的 keep_recent 条

@@ -3,6 +3,7 @@ use std::sync::Arc;
 use ai_agent::{agent::Agent, content::KIMI_K27_CODE_MODEL, tools::build_toolbox};
 use tracing::Level;
 use tracing_subscriber::FmtSubscriber;
+use uuid::Uuid;
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
@@ -17,7 +18,12 @@ async fn main() -> anyhow::Result<()> {
     let agent =
         Agent::new(KIMI_K27_CODE_MODEL, Some(instructions), Arc::new(toolbox)).with_max_step(20);
 
-    let ret = agent.run("我要去美加墨世界杯，如何安排？").await?;
+    let ret = agent
+        .run(
+            "我要去美加墨世界杯，如何安排？",
+            &Uuid::new_v4().to_string(),
+        )
+        .await?;
     tracing::info!("{:?}", ret);
     anyhow::Ok(())
 }

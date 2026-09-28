@@ -1,4 +1,4 @@
-use crate::agent::event::Event;
+use crate::{agent::event::Event, session::model::Session};
 use serde_json::Value;
 use std::collections::HashMap;
 use uuid::Uuid;
@@ -29,40 +29,40 @@ impl TokenUsage {
 pub struct ExecutionContext {
     // 唯一ID
     pub execution_id: String,
-    // 事件列表
-    pub events: Vec<Event>,
     // 当前步数
     pub current_step: u32,
-    // 临时存储的草稿本
-    pub state: HashMap<String, Value>,
     // 最终结果
     pub final_result: Option<String>,
     // token使用量
     pub usage: TokenUsage,
+    // 会话保存
+    pub session: Session,
 }
 
 impl ExecutionContext {
-    pub fn new() -> Self {
+    pub fn new(session: Session) -> Self {
         Self {
             execution_id: Uuid::new_v4().to_string(),
-            events: Vec::new(),
             current_step: 0,
-            state: HashMap::new(),
             final_result: None,
             usage: TokenUsage::default(),
+            session: session,
         }
     }
     // 添加event
     pub fn add_event(&mut self, event: Event) {
-        self.events.push(event);
+        self.session.events.push(event);
     }
     // 增加步数
     pub fn increment_step(&mut self) {
         self.current_step += 1
     }
-}
-impl Default for ExecutionContext {
-    fn default() -> Self {
-        Self::new()
+
+    pub fn events(&self) -> Vec<Event> {
+        self.session.events.clone()
+    }
+
+    pub fn state_mut(&mut self) -> &mut HashMap<String, Value> {
+        &mut self.session.state
     }
 }
