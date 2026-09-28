@@ -22,9 +22,6 @@ async fn main() -> anyhow::Result<()> {
         .await?;
     tracing::info!("回答1111{:#?}", ret);
 
-    let tools = build_toolbox().await?;
-    let agent = ai_agent::agent::Agent::new(KIMI_K27_CODE_MODEL, instructions, Arc::new(tools))
-        .with_max_step(10);
     let ret = agent
         .run("我叫的名字叫什么，我的职业是什么", "turn_over1")
         .await?;
