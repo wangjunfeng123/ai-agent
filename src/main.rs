@@ -1,4 +1,6 @@
-use ai_agent::{content::KIMI_K27_CODE_MODEL, llm::complete_struct::chat_complete_struct};
+use std::sync::Arc;
+
+use ai_agent::{agent::Agent, content::KIMI_K27_CODE_MODEL, tools::build_toolbox};
 use tracing::Level;
 use tracing_subscriber::FmtSubscriber;
 
@@ -10,13 +12,12 @@ async fn main() -> anyhow::Result<()> {
         .with_max_level(Level::INFO)
         .finish();
     tracing::subscriber::set_global_default(subscriber)?;
+    let toolbox = build_toolbox().await?;
+    let instructions = "你是一个全能助手";
+    let agent =
+        Agent::new(KIMI_K27_CODE_MODEL, Some(instructions), Arc::new(toolbox)).with_max_step(20);
 
-    let ret = chat_complete_struct(
-        KIMI_K27_CODE_MODEL,
-        Some("你是一个全能助手"),
-        "我要去美加墨世界杯，如何安排？",
-    )
-    .await;
+    let ret = agent.run("我要去美加墨世界杯，如何安排？").await?;
     tracing::info!("{:?}", ret);
     anyhow::Ok(())
 }

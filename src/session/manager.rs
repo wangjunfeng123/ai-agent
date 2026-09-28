@@ -56,6 +56,6 @@ impl SessionManager for ConsistencySessionManager {
         if let Some(session) = self.get(session_id).await? {
             return Ok(session);
         }
-        self.create(session_id, user_id).await
+         self.create(session_id, user_id).await
     }
 }
