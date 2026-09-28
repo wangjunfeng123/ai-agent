@@ -21,7 +21,7 @@ async fn main() -> anyhow::Result<()> {
     let ret = agent
         .run(
             "我要去美加墨世界杯，如何安排？",
-            &Uuid::new_v4().to_string(),
+            &Uuid::new_v4 ().to_string(),
         )
         .await?;
     tracing::info!("{:?}", ret);

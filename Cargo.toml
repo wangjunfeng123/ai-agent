@@ -25,6 +25,9 @@ path="examples/test_compress.rs"
 [[example]]
 name="test_context_optimizer"
 path="examples/test_context_optimizer.rs"
+[[example]]
+name="mult_turn"
+path="examples/mult_turn.rs"
 
 [dependencies]
 anyhow = "1.0.102"
