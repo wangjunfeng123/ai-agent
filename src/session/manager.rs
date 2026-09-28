@@ -35,7 +35,7 @@ impl ConsistencySessionManager {
 #[async_trait::async_trait]
 impl SessionManager for ConsistencySessionManager {
     async fn create(&self, session_id: &str, user_id: Option<&str>) -> anyhow::Result<Session> {
-        let mut guard = self.sessions.try_lock().expect("获取锁失败");
+        let mut guard = self.sessions.lock().await;
         if guard.contains_key(session_id) {
             anyhow::bail!("session already exist:{session_id}");
         }
@@ -45,11 +45,12 @@ impl SessionManager for ConsistencySessionManager {
     }
 
     async fn get(&self, session_id: &str) -> anyhow::Result<Option<Session>> {
-        Ok(self.sessions.try_lock().unwrap().get(session_id).cloned())
+        let guard = self.sessions.lock().await;
+        Ok(guard.get(session_id).cloned())
     }
 
     async fn save(&self, session: Session) -> anyhow::Result<()> {
-        let mut guard = self.sessions.try_lock().unwrap();
+        let mut guard = self.sessions.lock().await;
         guard.insert(session.session_id.clone(), session);
         Ok(())
     }
@@ -59,7 +60,7 @@ impl SessionManager for ConsistencySessionManager {
         session_id: &str,
         user_id: Option<&str>,
     ) -> anyhow::Result<Session> {
-        let mut guard = self.sessions.try_lock().unwrap();
+        let mut guard = self.sessions.lock().await;
         let session = guard
             .entry(session_id.to_owned())
             .or_insert_with(|| Session::new(session_id.to_owned(), user_id.map(str::to_string)))
